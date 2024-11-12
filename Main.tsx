@@ -3,51 +3,70 @@ import WebView from "react-native-webview";
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Image } from "react-native";
+import { useState, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const deviceHeight = (Dimensions.get('window').height);
 const deviceWidth = Dimensions.get('window').width;
 const Tab = createBottomTabNavigator();
-const BaseURL = 'http://172.16.1.109:3000';
+const BaseURL = 'http://172.30.1.64:3000';
 
-function Home() {
+interface WebViewWithTokenProps {
+  url: string;
+}
+
+function WebViewWithToken({ url }: WebViewWithTokenProps) {
+  const [token, setToken] = useState('');
+
+  useEffect(() => {
+    // AsyncStorage에서 토큰 가져오기
+    const fetchToken = async () => {
+      const storedToken = await AsyncStorage.getItem('token');
+      console.log(await AsyncStorage.getItem('token'))
+      if (storedToken) {
+        setToken(storedToken);
+      }
+    };
+    fetchToken();
+  }, []);
+
+  const injectedJS = `
+    (function() {
+      window.localStorage.setItem('token', '${token}');
+       window.ReactNativeWebView.postMessage('토큰이 설정되었습니다: ' + window.localStorage.getItem('token'));
+    })();
+    true; // 주입 코드가 성공적으로 완료되었음을 보장하기 위해
+  `;
+
   return (
     <View style={styles.container}>
       <WebView
-          style={styles.webview}
-          source={{ uri: `${BaseURL}/studyroom` }} />
+        style={styles.webview}
+        source={{ uri: url }}
+        injectedJavaScript={injectedJS} // 토큰을 주입
+        onMessage={(event) => {
+          console.log("웹에서 받은 메시지:", event.nativeEvent.data);
+        }}
+      />
     </View>
   );
 }
 
+function Home() {
+  return <WebViewWithToken url={`${BaseURL}/studyroom`} />;
+}
+
 function List(){
-  return (
-    <View style={styles.container}>
-      <WebView
-          style={styles.webview}
-          source={{ uri: `${BaseURL}/todolist` }} />
-    </View>
-  );
-};
+  return <WebViewWithToken url={`${BaseURL}/todolist`} />;
+}
 
 function Myfeed () {
-  return (
-    <View style={styles.container}>
-      <WebView
-          style={styles.webview}
-          source={{ uri: `${BaseURL}/feed` }} />
-    </View>
-  );
-};
+  return <WebViewWithToken url={`${BaseURL}/feed`} />;
+}
 
 function Camera() {
-  return (
-    <View style={styles.container}>
-      <WebView
-          style={styles.webview}
-          source={{ uri: `${BaseURL}/camera` }} />
-    </View>
-  );
-};
+  return <WebViewWithToken url={`${BaseURL}/camera`} />;
+}
 
 const Main = () =>{
   return(
