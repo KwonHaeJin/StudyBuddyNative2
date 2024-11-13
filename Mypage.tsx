@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useNavigation } from "@react-navigation/native";
 import React from "react";
 import { Text } from "react-native";

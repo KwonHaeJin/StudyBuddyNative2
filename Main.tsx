@@ -7,7 +7,7 @@ import { Image } from "react-native";
 const deviceHeight = (Dimensions.get('window').height);
 const deviceWidth = Dimensions.get('window').width;
 const Tab = createBottomTabNavigator();
-const BaseURL = 'http://172.16.1.109:3000';
+const BaseURL = 'http://192.168.0.37:3000';
 
 function Home() {
   return (
@@ -44,7 +44,7 @@ function Camera() {
     <View style={styles.container}>
       <WebView
           style={styles.webview}
-          source={{ uri: `${BaseURL}/camera` }} />
+          source={{ uri: 'https://43.202.203.36:5001' }} />
     </View>
   );
 };
