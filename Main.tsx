@@ -9,6 +9,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const deviceHeight = (Dimensions.get('window').height);
 const deviceWidth = Dimensions.get('window').width;
 const Tab = createBottomTabNavigator();
+
 const BaseURL = 'http://172.30.1.64:3000';
 
 interface WebViewWithTokenProps {
@@ -38,6 +39,7 @@ function WebViewWithToken({ url }: WebViewWithTokenProps) {
     true; // 주입 코드가 성공적으로 완료되었음을 보장하기 위해
   `;
 
+
   return (
     <View style={styles.container}>
       <WebView
@@ -65,8 +67,16 @@ function Myfeed () {
 }
 
 function Camera() {
-  return <WebViewWithToken url={`${BaseURL}/camera`} />;
-}
+
+  return (
+    <View style={styles.container}>
+      <WebView
+          style={styles.webview}
+          source={{ uri: 'https://43.202.203.36:5001' }} />
+    </View>
+  );
+};
+
 
 const Main = () =>{
   return(
