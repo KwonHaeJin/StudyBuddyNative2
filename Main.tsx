@@ -3,89 +3,78 @@ import WebView from "react-native-webview";
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Image } from "react-native";
+import CameraScreen from './CameraScreen'; 
 
-const deviceHeight = (Dimensions.get('window').height);
+const deviceHeight = Dimensions.get('window').height;
 const deviceWidth = Dimensions.get('window').width;
 const Tab = createBottomTabNavigator();
-const BaseURL = 'http://192.168.0.37:3000';
+const BaseURL = 'http://192.168.50.161:3000';
 
 function Home() {
   return (
     <View style={styles.container}>
       <WebView
-          style={styles.webview}
-          source={{ uri: `${BaseURL}/studyroom` }} />
+        style={styles.webview}
+        source={{ uri: `${BaseURL}/studyroom` }} />
     </View>
   );
 }
 
-function List(){
+function List() {
   return (
     <View style={styles.container}>
       <WebView
-          style={styles.webview}
-          source={{ uri: `${BaseURL}/todolist` }} />
+        style={styles.webview}
+        source={{ uri: `${BaseURL}/todolist` }} />
     </View>
   );
-};
+}
 
-function Myfeed () {
+function Myfeed() {
   return (
     <View style={styles.container}>
       <WebView
-          style={styles.webview}
-          source={{ uri: `${BaseURL}/feed` }} />
+        style={styles.webview}
+        source={{ uri: `${BaseURL}/feed` }} />
     </View>
   );
-};
+}
 
-function Camera() {
+const Main = () => {
   return (
-    <View style={styles.container}>
-      <WebView
-          style={styles.webview}
-          source={{ uri: 'https://43.202.203.36:5001' }} />
-    </View>
-  );
-};
+    <Tab.Navigator screenOptions={({ route }: { route: any }) => ({
+      tabBarIcon: ({ color }: { color: string }) => {
+        let iconSource;
 
-const Main = () =>{
-  return(
-      <Tab.Navigator screenOptions={({route}:{route:any})=>({
-        tabBarIcon:({color}:{color:string})=>{
-          let iconSource;
-
-          if(route.name == 'HomeScreen'){
-            iconSource = require('./assets/image/homeIcon.png');
-          } else if(route.name == 'ListScreen'){
-            iconSource = require('./assets/image/todooIcon.png');
-          } else if(route.name == 'CameraScreen'){
-            iconSource = require('./assets/image/cameraIcon.png');
-          } else if(route.name == 'MyfeedScreen'){
-            iconSource = require('./assets/image/feedIcon.png');
-          } 
-          return(
-            <Image source={iconSource}
-            style={{width:24, height:24,tintColor:color}}
-            resizeMode='contain'/>
-          );
-        },
-        headerShown:false,
-        tabBarShowLabel:false,
-        tabBarActiveTintColor:"#FF7A00",
-        tabBarInactiveTintColor:"black",
-      })}>
-        <Tab.Screen name="HomeScreen" component={Home}/>
-        <Tab.Screen name="ListScreen" component={List}/>
-        <Tab.Screen name="CameraScreen" component={Camera}/>
-        <Tab.Screen name="MyfeedScreen" component={Myfeed}/>
-      </Tab.Navigator>
+        if (route.name == 'HomeScreen') {
+          iconSource = require('./assets/image/homeIcon.png');
+        } else if (route.name == 'ListScreen') {
+          iconSource = require('./assets/image/todooIcon.png');
+        } else if (route.name == 'CameraScreen') {
+          iconSource = require('./assets/image/cameraIcon.png');
+        } else if (route.name == 'MyfeedScreen') {
+          iconSource = require('./assets/image/feedIcon.png');
+        }
+        return (
+          <Image source={iconSource}
+            style={{ width: 24, height: 24, tintColor: color }}
+            resizeMode='contain' />
+        );
+      },
+      headerShown: false,
+      tabBarShowLabel: false,
+      tabBarActiveTintColor: "#FF7A00",
+      tabBarInactiveTintColor: "black",
+    })}>
+      <Tab.Screen name="HomeScreen" component={Home} />
+      <Tab.Screen name="ListScreen" component={List} />
+      <Tab.Screen name="CameraScreen" component={CameraScreen} />
+      <Tab.Screen name="MyfeedScreen" component={Myfeed} />
+    </Tab.Navigator>
   );
 };
 
 export default Main;
-
-
 
 const styles = StyleSheet.create({
   container: {
