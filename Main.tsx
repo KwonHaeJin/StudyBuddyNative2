@@ -10,7 +10,7 @@ const deviceHeight = (Dimensions.get('window').height);
 const deviceWidth = Dimensions.get('window').width;
 const Tab = createBottomTabNavigator();
 
-const BaseURL = 'http://172.30.1.64:3000';
+const BaseURL = 'http://192.168.0.37:3000';
 
 interface WebViewWithTokenProps {
   url: string;
@@ -72,7 +72,7 @@ function Camera() {
     <View style={styles.container}>
       <WebView
           style={styles.webview}
-          source={{ uri: 'https://43.202.203.36:5001' }} />
+          source={{ uri: 'http://43.202.203.36:5001' }} />
     </View>
   );
 };
