@@ -1393,8 +1393,10 @@
 "@react-native/normalize-colors@0.76.1":
   version "0.76.1"
 
-"@react-native/typescript-config@0.76.1":
+"@react-native/typescript-config@^0.76.1":
   version "0.76.1"
+  resolved "https://registry.npmjs.org/@react-native/typescript-config/-/typescript-config-0.76.1.tgz"
+  integrity sha512-KcmgsFG/c3WdAqy7/06Zvfkye3XIc/0zItlFMSGMgAjFFuCTomXqpmJdrtTBheCDy+gbKaR/vWf+snL8C+OVvA==
 
 "@react-native/virtualized-lists@0.76.1":
   version "0.76.1"
