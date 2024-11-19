@@ -33,9 +33,9 @@ const CameraScreen = () => {
 
         return () => {
             // 컴포넌트 언마운트 시 리소스 정리
-            if (peerConnection) peerConnection.close();
-            if (localStream) localStream.getTracks().forEach((track) => track.stop());
-            if (remoteStream) remoteStream.getTracks().forEach((track) => track.stop());
+            if (peerConnection) { peerConnection.close(); }
+            if (localStream) { localStream.getTracks().forEach((track) => track.stop()); }
+            if (remoteStream) { remoteStream.getTracks().forEach((track) => track.stop()); }
             socket.disconnect();
         };
     }, []);
@@ -215,12 +215,12 @@ const CameraScreen = () => {
         console.log('Room ID set to:', roomId); // 로그 추가
         console.log('User ID:', userId); // 로그 추가
 
-        console.log("handleStartRecording ---");
+        console.log('handleStartRecording ---');
 
         await startLocalStream();
 
         // 방 정보를 서버로 전송
-        console.log("handleStartRecording --- sending roominfo");
+        console.log('handleStartRecording --- sending roominfo');
         const roomInfo = { roomId: userId, userId };
         console.log('Emitting create_room with roomInfo:', roomInfo); // 로그 추가
         socket.emit('create_room', roomInfo, async (response) => {
@@ -230,9 +230,9 @@ const CameraScreen = () => {
                 setServerResponse(`방 생성 성공: ${response.roomId}`);
                 setIsRecording(true); // 녹화 상태로 전환
 
-                
+
                 try {
-                    await updateUserStudyStatus(userId); 
+                    await updateUserStudyStatus(userId);
                 } catch (error) {
                     console.error('Failed to update isStudy:', error.message);
                 }
@@ -297,6 +297,39 @@ const CameraScreen = () => {
             await peerConnection.addIceCandidate(iceCandidate);
         }
     };
+    const handleLeaveRoom = async () => {
+        try {
+            // WebRTC 연결 종료
+            if (peerConnection) {
+                peerConnection.close();
+                setPeerConnection(null);
+            }
+
+            // 로컬 스트림 종료
+            if (localStream) {
+                localStream.getTracks().forEach((track) => track.stop());
+                setLocalStream(null);
+            }
+
+            // 원격 스트림 종료
+            if (remoteStream) {
+                remoteStream.getTracks().forEach((track) => track.stop());
+                setRemoteStream(null);
+            }
+
+            // 소켓 연결 종료
+            socket.emit('leave_room', { roomId }); // 서버로 방 떠났다는 이벤트 전송
+            socket.disconnect();
+
+            // 녹화 상태 해제
+            setIsRecording(false);
+
+            console.log('Room left and resources cleaned up.');
+        } catch (error) {
+            console.error('Error leaving room:', error.message);
+        }
+    };
+
 
     return (
         <View style={styles.container}>
@@ -307,6 +340,9 @@ const CameraScreen = () => {
 
                     {remoteStream && <RTCView streamURL={remoteStream.toURL()} style={styles.remoteVideo} />}
                     {localStream && <RTCView streamURL={localStream.toURL()} style={styles.localVideo} mirror />}
+
+                    {/* Leave Room 버튼 추가 */}
+                    <Button title="Leave Room" onPress={handleLeaveRoom} color="red" />
                 </>
             ) : (
                 <Button title="Start Recording" onPress={handleStartRecording} />
@@ -317,8 +353,28 @@ const CameraScreen = () => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    remoteVideo: { width: '100%', height: '60%', marginBottom: 10 },
-    localVideo: { width: 100, height: 150, position: 'absolute', bottom: 10, right: 10 },
+    remoteVideo: {
+        width: '80%',
+        height: undefined,
+        aspectRatio: 16 / 9,
+        bottom: 10,
+        right: 10,
+        borderColor: 'white',
+        backgroundColor: 'black',
+        justifyContent: 'center',
+        borderCurve: 'circular',
+    },
+    localVideo: {
+        width: '80%',
+        height: undefined,
+        aspectRatio: 16 / 9,
+        bottom: 10,
+        right: 10,
+        borderColor: 'white',
+        backgroundColor: 'black',
+        justifyContent: 'center',
+        borderCurve: 'circular',
+    },
 });
 
 export default CameraScreen;
