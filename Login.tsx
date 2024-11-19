@@ -1,21 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Dimensions, View, StyleSheet, Text } from "react-native";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import WebView from "react-native-webview";
-import { Image } from "react-native";
+import { View, Text, StyleSheet, Dimensions } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import CameraScreen from "./CameraScreen";
+import WebView from "react-native-webview";
 
 const deviceHeight = Dimensions.get("window").height;
 const deviceWidth = Dimensions.get("window").width;
-const Tab = createBottomTabNavigator();
-const BaseURL = "http://192.168.0.37:3000";
 
-interface WebViewWithTokenProps {
-  url: string;
-}
-
-function WebViewWithToken({ url }: WebViewWithTokenProps) {
+const Login = () => {
+  const url = "http://192.168.0.37:3000"; // React 웹 앱 URL
   const [token, setToken] = useState("");
 
   useEffect(() => {
@@ -37,73 +29,39 @@ function WebViewWithToken({ url }: WebViewWithTokenProps) {
     true;
   `;
 
-  if (!url) {
-    return (
-      <View style={styles.container}>
-        <Text>URL이 설정되지 않았습니다.</Text>
-      </View>
-    );
-  }
+  const handleWebViewMessage = async (event: any) => {
+    try {
+      const message = event.nativeEvent.data;
+      console.log("웹에서 받은 메시지:", message);
+
+      // 메시지가 JSON 형식인지 확인
+      const parsedMessage = JSON.parse(message);
+
+      if (parsedMessage.token) {
+        // 토큰을 AsyncStorage에 저장
+        await AsyncStorage.setItem("token", parsedMessage.token);
+        console.log("토큰 저장 성공:", parsedMessage.token);
+      } else {
+        console.error("토큰 정보가 포함되지 않았습니다.");
+      }
+    } catch (error) {
+      console.error("메시지 처리 중 오류:", error);
+    }
+  };
 
   return (
-    <View style={{ flex: 1}}>
+    <View style={styles.container}>
       <WebView
         style={styles.webview}
         source={{ uri: url }}
         injectedJavaScript={injectedJS}
-        onMessage={(event) => {
-          console.log("웹에서 받은 메시지:", event.nativeEvent.data);
-        }}
+        onMessage={handleWebViewMessage} // 메시지 핸들러 연결
       />
     </View>
   );
-}
-
-function Home() {
-  return <WebViewWithToken url={`${BaseURL}/studyroom`} />;
-}
-
-function List() {
-  return <WebViewWithToken url={`${BaseURL}/todolist`} />;
-}
-
-function Myfeed() {
-  return <WebViewWithToken url={`${BaseURL}/feed`} />;
-}
-
-const Main = () => {
-  return (
-    <Tab.Navigator
-      screenOptions={({ route }: { route: any }) => ({
-        tabBarIcon: ({ color }: { color: string }) => {
-          const icons = {
-            HomeScreen: require("./assets/image/homeIcon.png"),
-            ListScreen: require("./assets/image/todooIcon.png"),
-            CameraScreen: require("./assets/image/cameraIcon.png"),
-            MyfeedScreen: require("./assets/image/feedIcon.png"),
-          };
-          return (
-            <Image
-              source={icons[route.name]}
-              style={{ width: 24, height: 24, tintColor: color }}
-            />
-          );
-        },
-        headerShown: false,
-        tabBarShowLabel: false,
-        tabBarActiveTintColor: "#FF7A00",
-        tabBarInactiveTintColor: "black",
-      })}
-    >
-      <Tab.Screen name="HomeScreen" component={Home} />
-      <Tab.Screen name="ListScreen" component={List} />
-      <Tab.Screen name="CameraScreen" component={CameraScreen} />
-      <Tab.Screen name="MyfeedScreen" component={Myfeed} />
-    </Tab.Navigator>
-  );
 };
 
-export default Main;
+export default Login;
 
 const styles = StyleSheet.create({
   container: {
@@ -113,5 +71,7 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1,
+    width: deviceWidth,
+    height: deviceHeight,
   },
 });

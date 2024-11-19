@@ -16,16 +16,12 @@ export default function App() {
     useEffect(() => {
         const initializeAuth = async () => {
             try {
-                // AsyncStorage에서 토큰 가져오기
-                const token = await AsyncStorage.getItem('token');
-                if (token) {
-                    setIsAuthenticated(true); // 토큰이 있으면 인증 성공
-                } else {
-                    setIsAuthenticated(false); // 토큰이 없으면 인증 실패
-                }
+                // 새로고침 시 토큰 제거
+                await AsyncStorage.removeItem('token');
+                setIsAuthenticated(false); // 인증 상태 초기화
             } catch (error) {
-                console.error('Error checking authentication:', error);
-                setIsAuthenticated(false); // 에러 발생 시 인증 실패로 처리
+                console.error('Error resetting authentication:', error);
+                setIsAuthenticated(false);
             } finally {
                 setIsLoading(false); // 로딩 완료
             }
@@ -45,7 +41,7 @@ export default function App() {
 
     return (
         <NavigationContainer>
-            <Stack.Navigator initialRouteName={isAuthenticated ? "Main" : "Login"}>
+            <Stack.Navigator initialRouteName="Login">
                 <Stack.Screen
                     name="Login"
                     component={Login}
