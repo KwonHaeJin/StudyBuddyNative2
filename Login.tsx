@@ -1,140 +1,117 @@
-import { useNavigation } from "@react-navigation/native";
-import React, { useState } from "react";
-import { StyleSheet, Dimensions, View, TextInput, TouchableOpacity } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import axios from "axios";
-import CustomText from "./CustomText";
+import React, { useState, useEffect } from "react";
+import { Dimensions, View, StyleSheet, Text } from "react-native";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import WebView from "react-native-webview";
+import { Image } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import CameraScreen from "./CameraScreen";
 
-const deviceHeight = (Dimensions.get('window').height);
-const deviceWidth = (Dimensions.get('window').width);
+const deviceHeight = Dimensions.get("window").height;
+const deviceWidth = Dimensions.get("window").width;
+const Tab = createBottomTabNavigator();
+const BaseURL = "http://192.168.0.37:3000";
 
-const Login = () => {
-  const navigation = useNavigation();
-  const [id, setId] = useState('');
-  const [pw, setPw] = useState('');
+interface WebViewWithTokenProps {
+  url: string;
+}
 
+function WebViewWithToken({ url }: WebViewWithTokenProps) {
+  const [token, setToken] = useState("");
 
-  function Login() {
-    console.log("ID:", id, "Password:", pw);
-    axios.post(
-      `${BaseURL}/login`,
-      { "userId": id, "password": pw },
-      {
-        'headers': {
-          'Content-Type': 'application/json'
-        }
+  useEffect(() => {
+    const fetchToken = async () => {
+      const storedToken = await AsyncStorage.getItem("token");
+      console.log("Stored token:", storedToken);
+      if (storedToken) {
+        setToken(storedToken);
       }
-    ).then(async (response) => {
-      if (response.status == 200) {
-        try {
-          await AsyncStorage.setItem("id", id);
-          await AsyncStorage.setItem("token", response.data.token);
-          console.log(await AsyncStorage.getItem("token"));
-          navigation.navigate("Main" as never);
-          console.log('로그인 성공');
-        } catch (error) { console.log("AsyncStorage error:", error); }
-      }
+    };
+    fetchToken();
+  }, []);
 
-    }).catch((error) => {
-      console.log(error.response);
+  const injectedJS = `
+    (function() {
+      window.localStorage.setItem('token', '${token}');
+      window.ReactNativeWebView.postMessage('토큰이 설정되었습니다: ' + window.localStorage.getItem('token'));
+    })();
+    true;
+  `;
 
-    });
+  if (!url) {
+    return (
+      <View style={styles.container}>
+        <Text>URL이 설정되지 않았습니다.</Text>
+      </View>
+    );
   }
 
-
   return (
-    <SafeAreaView style={styles.main}>
-      <CustomText style={{ fontSize: 60, fontStyle: "italic", color: "#B3B3B3", marginRight: deviceWidth * 0.3 }}>study</CustomText>
-      <View style={{ display: "flex", flexDirection: "row" }}>
-        <View style={styles.dot1}></View><View style={styles.dot2}></View>
-      </View>
-      <CustomText style={{ fontSize: 72, fontStyle: "italic", color: "#FF7A00", marginTop: -15 }}>BUDDY</CustomText>
-      <View style={{ display: "flex", flexDirection: "row", justifyContent: "center" }}>
-        <CustomText style={{ fontSize: 22, marginRight: deviceWidth * 0.1 }}>아이디</CustomText>
-        <TextInput value={id} onChangeText={(text) => { setId(text); console.log("ID:", text); }} style={styles.textInput}></TextInput>
-      </View>
-      <View style={{ display: "flex", flexDirection: "row", justifyContent: "center" }}>
-        <CustomText style={{ fontSize: 22, marginRight: deviceWidth * 0.05 }}>비밀번호</CustomText>
-        <TextInput value={pw} onChangeText={(text) => { setPw(text); console.log("PW:", text); }} style={styles.textInput}></TextInput>
-      </View>
-      <TouchableOpacity style={styles.loginButton} onPress={() => { Login(); }}>
-        <CustomText style={{ fontSize: 15, color: "black" }}>login</CustomText>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.signupButton} onPress={() => { }}>
-        <CustomText style={{ fontSize: 15, color: "white" }}>sign up</CustomText>
-      </TouchableOpacity>
+    <View style={{ flex: 1}}>
+      <WebView
+        style={styles.webview}
+        source={{ uri: url }}
+        injectedJavaScript={injectedJS}
+        onMessage={(event) => {
+          console.log("웹에서 받은 메시지:", event.nativeEvent.data);
+        }}
+      />
+    </View>
+  );
+}
 
+function Home() {
+  return <WebViewWithToken url={`${BaseURL}/studyroom`} />;
+}
 
+function List() {
+  return <WebViewWithToken url={`${BaseURL}/todolist`} />;
+}
 
-    </SafeAreaView>
+function Myfeed() {
+  return <WebViewWithToken url={`${BaseURL}/feed`} />;
+}
+
+const Main = () => {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }: { route: any }) => ({
+        tabBarIcon: ({ color }: { color: string }) => {
+          const icons = {
+            HomeScreen: require("./assets/image/homeIcon.png"),
+            ListScreen: require("./assets/image/todooIcon.png"),
+            CameraScreen: require("./assets/image/cameraIcon.png"),
+            MyfeedScreen: require("./assets/image/feedIcon.png"),
+          };
+          return (
+            <Image
+              source={icons[route.name]}
+              style={{ width: 24, height: 24, tintColor: color }}
+            />
+          );
+        },
+        headerShown: false,
+        tabBarShowLabel: false,
+        tabBarActiveTintColor: "#FF7A00",
+        tabBarInactiveTintColor: "black",
+      })}
+    >
+      <Tab.Screen name="HomeScreen" component={Home} />
+      <Tab.Screen name="ListScreen" component={List} />
+      <Tab.Screen name="CameraScreen" component={CameraScreen} />
+      <Tab.Screen name="MyfeedScreen" component={Myfeed} />
+    </Tab.Navigator>
   );
 };
 
-export default Login;
-export const BaseURL = "http://43.202.203.36:3000/api";
+export default Main;
 
 const styles = StyleSheet.create({
-  main: {
-    display: 'flex',
-    flexDirection: "column",
-    alignItems: "center",
+  container: {
+    flex: 1,
     justifyContent: "center",
-    backgroundColor: "#FAFAFA",
-    paddingLeft: 2,
-    paddingRight: 2,
-    width: deviceWidth,
-    minHeight: deviceHeight,
-  },
-  dot1: {
-    height: 7,
-    width: 7,
-    borderRadius: "50%",
-    backgroundColor: "#2EC316",
-    marginLeft: deviceWidth * 0.13,
-    marginTop: 0,
-    marginBottom: 0
-
-  },
-  dot2: {
-    height: 7,
-    width: 7,
-    borderRadius: "50%",
-    backgroundColor: "#2EC316",
-    marginLeft: deviceWidth * 0.09,
-    marginTop: 0,
-    marginBottom: 0
-  },
-  textInput: {
-    width: deviceWidth * 0.55,
-    padding: 10,
-    marginBottom: 15,
-    borderRadius: deviceHeight * 0.1,
-    height: deviceHeight * 0.05,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    backgroundColor: "#FFFFFF"
-  },
-  loginButton: {
-    width: deviceWidth * 0.75,
-    height: deviceHeight * 0.035,
-    borderColor: "#FF7A00",
-    borderWidth: 1,
-    backgroundColor: "#FFFFFF",
-    borderRadius: deviceHeight * 0.1,
-    display: "flex",
     alignItems: "center",
-    justifyContent: "center"
   },
-  signupButton: {
-    width: deviceWidth * 0.75,
-    height: deviceHeight * 0.035,
-    borderColor: "#FF7A00",
-    borderWidth: 1,
-    backgroundColor: "#FF7A00",
-    borderRadius: deviceHeight * 0.1,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center"
-  }
+  webview: {
+    flex: 1,
+  },
 });
