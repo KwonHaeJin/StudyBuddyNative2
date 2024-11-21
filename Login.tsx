@@ -2,11 +2,13 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import WebView from "react-native-webview";
+import { useNavigation } from "@react-navigation/native";
 
 const deviceHeight = Dimensions.get("window").height;
 const deviceWidth = Dimensions.get("window").width;
 
 const Login = () => {
+  const navigation = useNavigation();
   const url = "http://192.168.0.37:3000"; // React 웹 앱 URL
   const [token, setToken] = useState("");
 
@@ -41,6 +43,9 @@ const Login = () => {
         // 토큰을 AsyncStorage에 저장
         await AsyncStorage.setItem("token", parsedMessage.token);
         console.log("토큰 저장 성공:", parsedMessage.token);
+        // 여기서 메인으로 넘어가야함 
+        navigation.replace("Main");
+
       } else {
         console.error("토큰 정보가 포함되지 않았습니다.");
       }
