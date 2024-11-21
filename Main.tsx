@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   },
   screenContainer: {
     flex: 1,
-    //paddingBottom: 100, // 하단 탭 공간 확보
+    paddingBottom: 100, // 하단 탭 공간 확보
   },
   webview: {
     flex: 1,
