@@ -1,134 +1,83 @@
 import React, { useEffect, useState } from 'react';
-import { View, Button, PermissionsAndroid, StyleSheet, Platform, Text, Alert } from 'react-native';
+import { View, Button, StyleSheet, Text, PermissionsAndroid, Alert, Platform } from 'react-native';
 import { RTCView, mediaDevices, RTCPeerConnection, RTCSessionDescription, RTCIceCandidate } from 'react-native-webrtc';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import io from 'socket.io-client';
 import axios from 'axios';
 
-// Signaling 서버 URL
+
 const socket = io('http://43.203.252.52:5001', { transports: ['websocket'] });
 
-// WebRTC Configuration
 const configuration = {
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
 };
 
-const CameraScreen = () => {
-    const [localStream, setLocalStream] = useState(null); // 로컬 스트림
-    const [remoteStream, setRemoteStream] = useState(null); // 원격 스트림
-    const [peerConnection, setPeerConnection] = useState(null); // PeerConnection 객체
-    const [roomId, setRoomId] = useState(''); // 방 ID
-    const [userId, setUserId] = useState(''); // 유저 ID
-    const [isRecording, setIsRecording] = useState(false); // 녹화 여부
-    const [serverResponse, setServerResponse] = useState(''); // 서버 응답 메시지
-    const [connectionStatus, setConnectionStatus] = useState(''); // 소켓 연결 상태
+const CameraScreen = ({ route }) => {
+    const [localStream, setLocalStream] = useState(null);
+    const [remoteStream, setRemoteStream] = useState(null);
+    const [peerConnection, setPeerConnection] = useState(null);
+    const [roomId, setRoomId] = useState('');
+    const [userId, setUserId] = useState('');
+    const [serverResponse, setServerResponse] = useState('');
+    const [connectionStatus, setConnectionStatus] = useState('');
 
     useEffect(() => {
-        // 권한 요청 및 유저 정보 가져오기
-        requestPermissions();
-        fetchUserInfo();
-
-        // 소켓 이벤트 설정
         setupSocketListeners();
+        requestPermissions();
+
+        // route.params에서 userId 가져오기
+        if (route.params) {
+            const { userId: userIdFromParams } = route.params;
+            setUserId(userIdFromParams || '');
+        }
 
         return () => {
-            // 컴포넌트 언마운트 시 리소스 정리
-            if (peerConnection) { peerConnection.close(); }
-            if (localStream) { localStream.getTracks().forEach((track) => track.stop()); }
-            if (remoteStream) { remoteStream.getTracks().forEach((track) => track.stop()); }
             socket.disconnect();
+            if (localStream) localStream.getTracks().forEach((track) => track.stop());
+            if (remoteStream) remoteStream.getTracks().forEach((track) => track.stop());
         };
     }, []);
-    // 권한 요청 함수
+
     const requestPermissions = async () => {
-        try {
-            if (Platform.OS === 'android') {
-                const permissions = await PermissionsAndroid.requestMultiple([
-                    PermissionsAndroid.PERMISSIONS.CAMERA,
-                    PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-                ]);
+        if (Platform.OS === 'android') {
+            const permissions = await PermissionsAndroid.requestMultiple([
+                PermissionsAndroid.PERMISSIONS.CAMERA,
+                PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+            ]);
 
-                console.log('Permissions result:', permissions);
-
-                if (
-                    permissions['android.permission.CAMERA'] !== PermissionsAndroid.RESULTS.GRANTED ||
-                    permissions['android.permission.RECORD_AUDIO'] !== PermissionsAndroid.RESULTS.GRANTED
-                ) {
-                    console.error('Camera or audio permissions not granted');
-                    throw new Error('Camera or audio permissions not granted');
-                }
-            } else {
-                console.log('iOS 권한은 Info.plist에서 설정됩니다.');
-            }
-        } catch (error) {
-            console.warn('Permission error:', error);
-            Alert.alert(
-                '권한 필요',
-                '앱에서 카메라 및 마이크 권한이 필요합니다. 설정으로 이동하여 권한을 활성화하세요.',
-                [{ text: '설정 열기', onPress: () => OpenAppSettings.open() }]
-            );
-            throw error;
-        }
-    };
-
-    // 유저 정보를 가져오는 함수
-    const fetchUserInfo = async () => {
-        try {
-            const token = await AsyncStorage.getItem('token');
-            if (!token) {
-                console.error('Token not found in AsyncStorage');
-                return;
-            }
-
-            const response = await axios.get('http://43.203.252.52:3000/api/users', {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`, // Bearer 토큰 추가
-                },
-            });
-
-            if (response.data && response.data.userId) {
-                setUserId(response.data.userId); // 유저 ID 저장
-                console.log('Fetched User ID:', response.data.userId);
-            } else {
-                console.error('User ID not found in response');
-            }
-        } catch (error) {
-            if (error.response) {
-                console.error('Error Response:', error.response.data);
-                console.error('Status:', error.response.status);
-            } else if (error.request) {
-                console.error('No Response from server:', error.request);
-            } else {
-                console.error('Error:', error.message);
+            if (
+                permissions['android.permission.CAMERA'] !== PermissionsAndroid.RESULTS.GRANTED ||
+                permissions['android.permission.RECORD_AUDIO'] !== PermissionsAndroid.RESULTS.GRANTED
+            ) {
+                Alert.alert('Permission Denied', 'Camera and Microphone permissions are required.');
             }
         }
     };
 
-    // 소켓 이벤트 설정
-    // 소켓 이벤트 설정
     const setupSocketListeners = () => {
-        // 소켓 연결 확인
         socket.on('connection_success', (data) => {
-            console.log('Connection Success:', data);
-            setConnectionStatus(`Connected: ${data.message}`);
+            setConnectionStatus(data.message);
         });
 
-        // 방 상태 메시지 수신
         socket.on('room_status', (data) => {
-            console.log('Room Status:', data.message);
             setServerResponse(data.message);
         });
 
-        // WebRTC 관련 이벤트
         socket.on('webrtc_offer', handleReceiveOffer);
         socket.on('webrtc_answer', handleReceiveAnswer);
-        socket.on('webrtc_ice_candidate', handleNewICECandidateMsg);
+        socket.on('webrtc_ice_candidate', handleNewICECandidate);
 
-        // 소켓 연결 끊김 감지
-        socket.on('disconnect', async () => {
-            console.log('Socket disconnected. Updating isStudy to false.');
+        return () => { 
+            socket.off('connection_success'); 
+            socket.off('room_status');
+            socket.off('webrtc_offer');
+            socket.off('webrtc_answer');
+            socket.off('webrtc_ice_candidate');
+        };
+    };
 
+    const handleCreateRoom = async () => {
+        if (!userId) {
             try {
                 const token = await AsyncStorage.getItem('token');
                 if (!token) {
@@ -136,18 +85,19 @@ const CameraScreen = () => {
                     return;
                 }
 
-                const response = await axios.put(
-                    `http://43.203.252.52:3000/api/users/${userId}`,
-                    { isStudy: false }, // isStudy 값을 false로 변경
-                    {
-                        headers: {
-                            'Content-Type': 'application/json',
-                            Authorization: `Bearer ${token}`, // Bearer 토큰 추가
-                        },
-                    }
-                );
+                const response = await axios.get('http://43.203.252.52:3000/api/users', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`, // Bearer 토큰 추가
+                    },
+                });
 
-                console.log('User study status updated to false:', response.data);
+                if (response.data && response.data.userId) {
+                    setUserId(response.data.userId); // 유저 ID 저장
+                    console.log('Fetched User ID:', response.data.userId);
+                } else {
+                    console.error('User ID not found in response');
+                }
             } catch (error) {
                 if (error.response) {
                     console.error('Error Response:', error.response.data);
@@ -158,233 +108,161 @@ const CameraScreen = () => {
                     console.error('Error:', error.message);
                 }
             }
-        });
-
-        // 이벤트 해제
-        return () => {
-            socket.off('connection_success');
-            socket.off('room_status');
-            socket.off('webrtc_offer');
-            socket.off('webrtc_answer');
-            socket.off('webrtc_ice_candidate');
-            socket.off('disconnect');
-        };
-    };
-
-    // 방 생성 성공 후 isStudy 상태 업데이트 함수
-    const updateUserStudyStatus = async (userId) => {
-        try {
-            const token = await AsyncStorage.getItem('token');
-            if (!token) {
-                console.error('Token not found in AsyncStorage');
-                return;
-            }
-            const response = await axios.put(
-                `http://43.203.252.52:3000/api/users/${userId}`,
-                { isStudy: true }, // isStudy 업데이트
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`, // Bearer 토큰 추가
-                    },
-                }
-            );
-
-            console.log('User study status updated successfully:', response.data);
-        } catch (error) {
-            if (error.response) {
-                console.error('Error Response:', error.response.data);
-                console.error('Status:', error.response.status);
-            } else if (error.request) {
-                console.error('No Response from server:', error.request);
-            } else {
-                console.error('Error:', error.message);
-            }
-        }
-    };
-
-    // Start Recording 버튼 클릭 시 호출
-    const handleStartRecording = async () => {
-        if (!userId) {
-            console.error('유저 ID가 없습니다. 로그인을 확인하세요.');
-            setServerResponse('로그인이 필요합니다.');
             return;
         }
 
-        setRoomId(userId); // 방 ID를 유저 ID로 설정
-        console.log('Room ID set to:', roomId); // 로그 추가
-        console.log('User ID:', userId); // 로그 추가
+        const newRoomId = userId;
+        setRoomId(newRoomId);
 
-        console.log('handleStartRecording ---');
-
-        await startLocalStream();
-
-        // 방 정보를 서버로 전송
-        console.log('handleStartRecording --- sending roominfo');
-        const roomInfo = { roomId: userId, userId };
-        console.log('Emitting create_room with roomInfo:', roomInfo); // 로그 추가
-        socket.emit('create_room', roomInfo, async (response) => {
-            console.log('Server Response:', response);
-            if (response?.status === 'success') {
-                console.log('방 생성 성공:', response);
-                setServerResponse(`방 생성 성공: ${response.roomId}`);
-                setIsRecording(true); // 녹화 상태로 전환
-
+        socket.emit('create_room', { roomId: newRoomId, userId }, async (response) => {
+            console.log('Response received from server:', response); // 서버 응답 확인
+            if (response.status === 'success') {
+                setServerResponse(`Room created successfully: ${response.roomId}`);
+                console.log(`Room created successfully: ${response.roomId}`);
 
                 try {
-                    await updateUserStudyStatus(userId);
+                    const token = await AsyncStorage.getItem('token');
+                    console.log('Token:', token); // 토큰 확인
+                    if (!token) {
+                        console.error('Token not found in AsyncStorage');
+                        return;
+                    }
+
+                    const apiResponse = await axios.put( 
+                        `http://43.203.252.52:3000/api/users/${userId}`,
+                        { isStudy: true },
+                        {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                Authorization: `Bearer ${token}`,
+                            },
+                        }
+                    );
+
+                    console.log('API Response:', apiResponse.status); // 응답 상태 코드 확인
+                    if (apiResponse.status === 200) {
+                        console.log('Success Creating room');
+                    } else {
+                        console.error('Unexpected API Response:', apiResponse);
+                    }
                 } catch (error) {
-                    console.error('Failed to update isStudy:', error.message);
+                    console.error('Error updating isStudy status:', error.message);
                 }
             } else {
-                console.error('방 생성 실패:', response);
-                setServerResponse(`방 생성 실패: ${response?.error}`);
+                Alert.alert('Error', response.error || 'Failed to create room.');
             }
         });
-    };
 
-    // 로컬 스트림 시작
-    const startLocalStream = async () => {
         try {
-            const stream = await mediaDevices.getUserMedia({ audio: true, video: true });
-            console.log('Local stream acquired:', stream);
+            const stream = await mediaDevices.getUserMedia({ video: true, audio: true });
             setLocalStream(stream);
         } catch (error) {
-            console.error('Error accessing media devices:', error.message);
+            Alert.alert('Error', 'Failed to access camera or microphone.');
         }
     };
 
+    const handleJoinRoom = async () => {
+        if (!roomId) {
+            Alert.alert('Error', 'Room ID is required to join a room.');
+            return;
+        }
 
-    // WebRTC PeerConnection 생성
-    const createPeerConnection = () => {
-        const pc = new RTCPeerConnection(configuration);
+        try {
+            const stream = await mediaDevices.getUserMedia({ video: true, audio: true });
+            setLocalStream(stream);
 
-        pc.onicecandidate = (event) => {
-            if (event.candidate) {
-                socket.emit('webrtc_ice_candidate', { roomId, candidate: event.candidate });
-            }
-        };
+            const pc = new RTCPeerConnection(configuration);
+            pc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    socket.emit('webrtc_ice_candidate', { roomId, candidate: event.candidate });
+                }
+            };
 
-        pc.ontrack = (event) => {
-            setRemoteStream(event.streams[0]);
-        };
+            pc.ontrack = (event) => {
+                setRemoteStream(event.streams[0]);
+            };
 
-        localStream?.getTracks().forEach((track) => pc.addTrack(track, localStream));
-        setPeerConnection(pc);
-        return pc;
+            stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+            setPeerConnection(pc);
+
+            socket.emit('join', roomId);
+            socket.on('room_status', (data) => {
+                console.log('Room Status:', data);
+                if (data.message === 'Joined room successfully') {
+                    createOffer(pc);
+                } else {
+                    Alert.alert('Room Join Error', data.message);
+                }
+            });
+        } catch (error) {
+            Alert.alert('Error', 'Failed to access camera or microphone.');
+        }
     };
 
-    // 서버로부터 Offer 수신 처리
-    const handleReceiveOffer = async (sdp) => {
-        const pc = createPeerConnection();
-        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+    const createOffer = async (pc) => {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        socket.emit('webrtc_offer', { roomId, sdp: offer });
+    };
+
+    const handleReceiveOffer = async (data) => {
+        const pc = peerConnection || new RTCPeerConnection(configuration);
+        await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         socket.emit('webrtc_answer', { roomId, sdp: answer });
     };
 
-    // 서버로부터 Answer 수신 처리
-    const handleReceiveAnswer = async (sdp) => {
+    const handleReceiveAnswer = async (data) => {
         if (peerConnection) {
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
         }
     };
 
-    // ICE Candidate 수신 처리
-    const handleNewICECandidateMsg = async ({ candidate }) => {
+    const handleNewICECandidate = async (data) => {
+        const candidate = new RTCIceCandidate(data.candidate);
         if (peerConnection) {
-            const iceCandidate = new RTCIceCandidate(candidate);
-            await peerConnection.addIceCandidate(iceCandidate);
+            await peerConnection.addIceCandidate(candidate);
         }
     };
-    const handleLeaveRoom = async () => {
-        try {
-            // WebRTC 연결 종료
-            if (peerConnection) {
-                peerConnection.close();
-                setPeerConnection(null);
-            }
-
-            // 로컬 스트림 종료
-            if (localStream) {
-                localStream.getTracks().forEach((track) => track.stop());
-                setLocalStream(null);
-            }
-
-            // 원격 스트림 종료
-            if (remoteStream) {
-                remoteStream.getTracks().forEach((track) => track.stop());
-                setRemoteStream(null);
-            }
-
-            // 소켓 연결 종료
-            socket.emit('leave_room', { roomId }); // 서버로 방 떠났다는 이벤트 전송
-            socket.disconnect();
-
-            // 녹화 상태 해제
-            setIsRecording(false);
-            const token = await AsyncStorage.getItem('token');
-            await axios.put(
-                `http://43.203.252.52:3000/api/users/${userId}`,
-                { isStudy: false }, // isStudy 값을 false로 변경
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`, // Bearer 토큰 추가
-                    },
-                }
-            );
-
-            console.log('Room left and resources cleaned up.');
-        } catch (error) {
-            console.error('Error leaving room:', error.message);
-        }
-    };
-
 
     return (
         <View style={styles.container}>
-            <Text>{connectionStatus}</Text> {/* 소켓 연결 상태 표시 */}
-            {isRecording ? (
-                <>
-                    <Text>{serverResponse}</Text>
-
-                    {remoteStream && <RTCView streamURL={remoteStream.toURL()} style={styles.remoteVideo} />}
-                    {localStream && <RTCView streamURL={localStream.toURL()} style={styles.localVideo} mirror />}
-
-                    {/* Leave Room 버튼 추가 */}
-                    <Button title="Leave Room" onPress={handleLeaveRoom} color="red" />
-                </>
+            <Text>{connectionStatus}</Text>
+            <Button title="Create Room" onPress={handleCreateRoom} />
+            {/* 조건부로 Join Room 버튼 렌더링 */}
+            {roomId && userId ? (
+                <Button title="Join Room" onPress={handleJoinRoom} />
             ) : (
-                <Button title="Start Recording" onPress={handleStartRecording} />
+                <Text style={styles.warningText}>Room ID and User ID are required to join a room.</Text>
+            )}
+            <Text>{serverResponse}</Text>
+            {localStream && (
+                <RTCView streamURL={localStream.toURL()} style={styles.localVideo} />
+            )}
+            {remoteStream && (
+                <RTCView streamURL={remoteStream.toURL()} style={styles.remoteVideo} />
             )}
         </View>
     );
+
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    remoteVideo: {
-        width: '80%',
-        height: undefined,
-        aspectRatio: 16 / 9,
-        bottom: 10,
-        right: 10,
-        borderColor: 'white',
-        backgroundColor: 'black',
+    container: {
+        flex: 1,
         justifyContent: 'center',
-        borderCurve: 'circular',
+        alignItems: 'center',
     },
     localVideo: {
-        width: '80%',
-        height: undefined,
-        aspectRatio: 16 / 9,
-        bottom: 10,
-        right: 10,
-        borderColor: 'white',
+        width: '100%',
+        height: '40%',
         backgroundColor: 'black',
-        justifyContent: 'center',
-        borderCurve: 'circular',
+    },
+    remoteVideo: {
+        width: '100%',
+        height: '40%',
+        backgroundColor: 'gray',
     },
 });
 
