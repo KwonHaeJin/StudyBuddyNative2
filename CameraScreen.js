@@ -6,7 +6,7 @@ import io from 'socket.io-client';
 import axios from 'axios';
 
 // Signaling 서버 URL
-const socket = io('http://43.202.203.36:5001', { transports: ['websocket'] });
+const socket = io('http://43.203.252.52:5001', { transports: ['websocket'] });
 
 // WebRTC Configuration
 const configuration = {
@@ -80,7 +80,7 @@ const CameraScreen = () => {
                 return;
             }
 
-            const response = await axios.get('http://43.202.203.36:3000/api/users', {
+            const response = await axios.get('http://43.203.252.52:3000/api/users', {
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`, // Bearer 토큰 추가
@@ -137,7 +137,7 @@ const CameraScreen = () => {
                 }
 
                 const response = await axios.put(
-                    `http://43.202.203.36:3000/api/users/${userId}`,
+                    `http://43.203.252.52:3000/api/users/${userId}`,
                     { isStudy: false }, // isStudy 값을 false로 변경
                     {
                         headers: {
@@ -180,7 +180,7 @@ const CameraScreen = () => {
                 return;
             }
             const response = await axios.put(
-                `http://43.202.203.36:3000/api/users/${userId}`,
+                `http://43.203.252.52:3000/api/users/${userId}`,
                 { isStudy: true }, // isStudy 업데이트
                 {
                     headers: {
