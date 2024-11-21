@@ -323,6 +323,17 @@ const CameraScreen = () => {
 
             // 녹화 상태 해제
             setIsRecording(false);
+            const token = await AsyncStorage.getItem('token');
+            await axios.put(
+                `http://43.203.252.52:3000/api/users/${userId}`,
+                { isStudy: false }, // isStudy 값을 false로 변경
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`, // Bearer 토큰 추가
+                    },
+                }
+            );
 
             console.log('Room left and resources cleaned up.');
         } catch (error) {
