@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import CameraScreen from './CameraScreen';
 
 const Tab = createBottomTabNavigator();
-const BaseURL = 'http://192.168.0.37:3000';
+const BaseURL = 'http://172.30.1.21:3000';
 
 function WebViewWithToken({ url }: { url: string }) {
   const [token, setToken] = useState('');
@@ -74,34 +74,41 @@ function Myfeed() {
 }
 
 const Main = () => {
-  return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ color }) => {
-          const icons = {
-            HomeScreen: require('./assets/image/homeIcon.png'),
-            ListScreen: require('./assets/image/todooIcon.png'),
-            CameraScreen: require('./assets/image/cameraIcon.png'),
-            MyfeedScreen: require('./assets/image/feedIcon.png'),
-          };
-          return (
-            <Image
-              source={icons[route.name]}
-              style={{ width: 24, height: 24, tintColor: color }}
-            />
+   return(
+      <Tab.Navigator screenOptions={({route}:{route:any})=>({
+        tabBarIcon:({color}:{color:string})=>{
+          let iconSource;
+
+          if(route.name == 'HomeScreen'){
+            iconSource = require('./assets/image/homeIcon.png');
+          } else if(route.name == 'ListScreen'){
+            iconSource = require('./assets/image/todooIcon.png');
+          } else if(route.name == 'CameraScreen'){
+            iconSource = require('./assets/image/cameraIcon.png');
+          } else if(route.name == 'MyfeedScreen'){
+            iconSource = require('./assets/image/feedIcon.png');
+          } 
+          return(
+            <Image source={iconSource}
+            style={{width:24, height:24,tintColor:color,}}
+            resizeMode='contain'/>
           );
         },
-        headerShown: false,
-        tabBarShowLabel: false,
-        tabBarActiveTintColor: '#FF7A00',
-        tabBarInactiveTintColor: 'black',
-      })}
-    >
-      <Tab.Screen name="HomeScreen" component={Home} />
-      <Tab.Screen name="ListScreen" component={List} />
-      <Tab.Screen name="CameraScreen" component={CameraScreen} />
-      <Tab.Screen name="MyfeedScreen" component={Myfeed} />
-    </Tab.Navigator>
+        headerShown:false,
+        tabBarShowLabel:false,
+        tabBarActiveTintColor:"#FF7A00",
+        tabBarInactiveTintColor:"black",
+        tabBarStyle: {
+          height: 60, 
+          paddingTop:10
+          
+        },
+      })}>
+        <Tab.Screen name="HomeScreen" component={Home}/>
+        <Tab.Screen name="ListScreen" component={List}/>
+        <Tab.Screen name="CameraScreen" component={CameraScreen}/>
+        <Tab.Screen name="MyfeedScreen" component={Myfeed}/>
+      </Tab.Navigator>
   );
 };
 
