@@ -182,20 +182,49 @@ const CameraScreen = ({ route }) => {
     const createOffer = async (pc) => {
         try {
             console.log('Creating WebRTC Offer...');
-            console.log('PeerConnection state before offer:', pc.connectionState); // 연결 상태 로그
+            console.log('PeerConnection state before offer:', pc.connectionState);
             const offer = await pc.createOffer();
-            console.log('Offer created:', offer); // 확인
+            console.log('Offer created:', offer);
 
-            // Offer을 setLocalDescription에 전달
-            pc.setLocalDescription(offer);
 
-            // 서버로 Offer 전송
-            console.log('Sending WebRTC Offer to server:', { roomId, sdp: offer });
-            socket.emit('webrtc_offer', { roomId, sdp: offer });
-            console.log('PeerConnection state after sending offer:', pc.connectionState);
+            console.log("-----------------------------\n");
+
+            if (!offer || !offer.sdp) {
+                console.error('Invalid offer received:', offer);
+                return;
+            }            
+
+            if (offer && offer.sdp) {
+                // setLocalDescription 호출
+               //await pc.setLocalDescription(offer); // 여기서 오류가 잇는듯...
+
+
+                console.log("-----------------------------\n");
+
+                console.log('Local description set:', offer);
+
+                // 서버로 Offer 전송
+                console.log('Sending WebRTC Offer to server:', { roomId, sdp: offer });
+                socket.emit('webrtc_offer', { roomId, sdp: offer });
+
+                // 서버로부터 응답을 기다리고, 그 응답을 setRemoteDescription에 적용
+                socket.on('webrtc_answer', async (data) => {
+                    console.log('Received Answer from server:', data);
+                    if (pc) {
+                        await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+                        console.log('Remote description set for Answer:', data.sdp);
+                    }
+                });
+
+                console.log('PeerConnection state after sending offer:', pc.connectionState);
+            } else {
+                console.error('Offer creation failed or invalid offer.');
+            }
         } catch (error) {
             console.error('Error creating WebRTC Offer:', error);
+            Alert.alert('Error', 'Failed to create offer.');
         }
+
         pc.onicecandidate = (event) => {
             if (event.candidate) {
                 console.log('Sending ICE Candidate:', event.candidate);
@@ -205,6 +234,7 @@ const CameraScreen = ({ route }) => {
             }
         };
     };
+
 
     const handleReceiveAnswer = async (data) => {
         try {
@@ -302,7 +332,6 @@ const CameraScreen = ({ route }) => {
         // 방을 떠나기 위한 처리
         console.log('Leaving room...');
         socket.emit('leave', roomId); // 서버에 'leave' 이벤트 전송
-        socket.disconnect();
 
         // 로컬 상태 초기화
         setRoomId('');  // 방 ID 초기화
@@ -312,6 +341,7 @@ const CameraScreen = ({ route }) => {
 
         console.log('Left the room');
     };
+
 
 
 
