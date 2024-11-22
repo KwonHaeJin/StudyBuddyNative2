@@ -1,3 +1,4 @@
+/* eslint-disable no-shadow */
 import React, { useEffect, useState } from 'react';
 import { View, Button, StyleSheet, Text, PermissionsAndroid, Alert, Platform } from 'react-native';
 import { RTCView, mediaDevices, RTCPeerConnection, RTCSessionDescription, RTCIceCandidate } from 'react-native-webrtc';
@@ -135,10 +136,35 @@ const CameraScreen = ({ route }) => {
         setRoomId(newRoomId);
 
         socket.emit('create_room', { roomId: newRoomId, userId }, async (response) => {
-            console.log('Response received from server:', response);
+            console.log('Response received from server:', response); // 서버 응답 확인
             if (response.status === 'success') {
                 setServerResponse(`Room created successfully: ${response.roomId}`);
                 console.log(`Room created successfully: ${response.roomId}`);
+
+                try {
+                    const token = await AsyncStorage.getItem('token');
+                    if (!token) {
+                        console.error('Token not found in AsyncStorage');
+                        return;
+                    }
+
+                    const apiResponse = await axios.put(
+                        `http://15.164.74.145:3000/api/users/${userId}`,
+                        { isStudy: true },
+                        {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                Authorization: `Bearer ${token}`,
+                            },
+                        }
+                    );
+
+                    if (apiResponse.status === 200) {
+                        console.log('Success Creating room');
+                    }
+                } catch (error) {
+                    console.error('Error updating isStudy status:', error.message);
+                }
             } else {
                 Alert.alert('Error', response.error || 'Failed to create room.');
             }
@@ -159,7 +185,7 @@ const CameraScreen = ({ route }) => {
             console.log('PeerConnection state before offer:', pc.connectionState); // 연결 상태 로그
             const offer = await pc.createOffer();
             console.log('Offer created:', offer); // 확인
-            
+
             // Offer을 setLocalDescription에 전달
             pc.setLocalDescription(offer);
 
@@ -174,7 +200,7 @@ const CameraScreen = ({ route }) => {
             if (event.candidate) {
                 console.log('Sending ICE Candidate:', event.candidate);
                 socket.emit('webrtc_ice_candidate', { roomId, candidate: event.candidate });
-            } else{
+            } else {
                 console.log('ICE Candidate gathering complete.');
             }
         };
@@ -277,17 +303,17 @@ const CameraScreen = ({ route }) => {
         console.log('Leaving room...');
         socket.emit('leave', roomId); // 서버에 'leave' 이벤트 전송
         socket.disconnect();
-        
+
         // 로컬 상태 초기화
         setRoomId('');  // 방 ID 초기화
         setRemoteStream(null);  // 원격 스트림 초기화
         setPeerConnection(null);  // 피어 연결 초기화
         setLocalStream(null);  // 로컬 스트림 초기화
-    
+
         console.log('Left the room');
     };
-    
-    
+
+
 
     return (
         <View style={styles.container}>
