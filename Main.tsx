@@ -18,7 +18,7 @@ type NavigationProp = StackNavigationProp<RootStackParamList, 'CameraScreen'>;
 
 
 const Tab = createBottomTabNavigator();
-const BaseURL = 'http://172.30.1.21:3000';
+const BaseURL = 'http://192.168.0.37:3000';
 
 function WebViewWithToken({ url }: { url: string }) {
   const [token, setToken] = useState('');
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   },
   screenContainer: {
     flex: 1,
-    paddingBottom: 100, // 하단 탭 공간 확보
+    //paddingBottom: 100, // 하단 탭 공간 확보
   },
   webview: {
     flex: 1,
