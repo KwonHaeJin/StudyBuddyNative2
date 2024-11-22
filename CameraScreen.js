@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import io from 'socket.io-client';
 import axios from 'axios';
 
-const socket = io('http://43.203.252.52:5001', { transports: ['websocket'] });
+const socket = io('http://15.164.74.145:5001', { transports: ['websocket'] });
 
 const configuration = {
     iceServers: [
@@ -51,7 +51,6 @@ const CameraScreen = ({ route }) => {
             }
         };
 
-
         initializeScreen();
 
         return () => {
@@ -62,7 +61,6 @@ const CameraScreen = ({ route }) => {
     }, []);
 
     useEffect(() => {
-        // 소켓 연결 상태 디버깅
         socket.on('connect', () => {
             console.log('Socket connected:', socket.id);
         });
@@ -105,28 +103,6 @@ const CameraScreen = ({ route }) => {
         }
     };
 
-    const setupSocketListeners = () => {
-        socket.on('connection_success', (data) => {
-            setConnectionStatus(data.message);
-        });
-
-        socket.on('room_status', (data) => {
-            setServerResponse(data.message);
-        });
-
-        socket.on('webrtc_offer', handleReceiveAnswer);
-        socket.on('webrtc_answer', handleReceiveAnswer);
-        socket.on('webrtc_ice_candidate', handleNewICECandidate);
-
-        return () => {
-            socket.off('connection_success');
-            socket.off('room_status');
-            socket.off('webrtc_offer');
-            socket.off('webrtc_answer');
-            socket.off('webrtc_ice_candidate');
-        };
-    };
-
     const handleCreateRoom = async () => {
         if (!userId) {
             try {
@@ -136,7 +112,7 @@ const CameraScreen = ({ route }) => {
                     return;
                 }
 
-                const response = await axios.get('http://43.203.252.52:3000/api/users', {
+                const response = await axios.get('http://15.164.74.145:3000/api/users', {
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`,
@@ -163,33 +139,6 @@ const CameraScreen = ({ route }) => {
             if (response.status === 'success') {
                 setServerResponse(`Room created successfully: ${response.roomId}`);
                 console.log(`Room created successfully: ${response.roomId}`);
-
-                try {
-                    const token = await AsyncStorage.getItem('token');
-                    if (!token) {
-                        console.error('Token not found in AsyncStorage');
-                        return;
-                    }
-
-                    const apiResponse = await axios.put(
-                        `http://43.203.252.52:3000/api/users/${userId}`,
-                        { isStudy: true },
-                        {
-                            headers: {
-                                'Content-Type': 'application/json',
-                                Authorization: `Bearer ${token}`,
-                            },
-                        }
-                    );
-
-                    if (apiResponse.status === 200) {
-                        console.log('Successfully updated isStudy to true');
-                    } else {
-                        console.error('Unexpected API Response:', apiResponse);
-                    }
-                } catch (error) {
-                    console.error('Error updating isStudy status:', error.message);
-                }
             } else {
                 Alert.alert('Error', response.error || 'Failed to create room.');
             }
@@ -209,12 +158,15 @@ const CameraScreen = ({ route }) => {
             console.log('Creating WebRTC Offer...');
             console.log('PeerConnection state before offer:', pc.connectionState); // 연결 상태 로그
             const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            console.log('Offer created:', offer);
+            console.log('Offer created:', offer); // 확인
+            
+            // Offer을 setLocalDescription에 전달
+            pc.setLocalDescription(offer);
 
             // 서버로 Offer 전송
             console.log('Sending WebRTC Offer to server:', { roomId, sdp: offer });
             socket.emit('webrtc_offer', { roomId, sdp: offer });
+            console.log('PeerConnection state after sending offer:', pc.connectionState);
         } catch (error) {
             console.error('Error creating WebRTC Offer:', error);
         }
@@ -222,15 +174,12 @@ const CameraScreen = ({ route }) => {
             if (event.candidate) {
                 console.log('Sending ICE Candidate:', event.candidate);
                 socket.emit('webrtc_ice_candidate', { roomId, candidate: event.candidate });
-            } else {
+            } else{
                 console.log('ICE Candidate gathering complete.');
             }
         };
-
     };
 
-
-    // Answer 수신 처리
     const handleReceiveAnswer = async (data) => {
         try {
             console.log('Received Answer from server:', data);
@@ -323,19 +272,44 @@ const CameraScreen = ({ route }) => {
         }
     };
 
+    const handleLeaveRoom = () => {
+        // 방을 떠나기 위한 처리
+        console.log('Leaving room...');
+        socket.emit('leave', roomId); // 서버에 'leave' 이벤트 전송
+        socket.disconnect();
+        
+        // 로컬 상태 초기화
+        setRoomId('');  // 방 ID 초기화
+        setRemoteStream(null);  // 원격 스트림 초기화
+        setPeerConnection(null);  // 피어 연결 초기화
+        setLocalStream(null);  // 로컬 스트림 초기화
+    
+        console.log('Left the room');
+    };
+    
+    
+
     return (
         <View style={styles.container}>
             <Text>{connectionStatus}</Text>
-            <Button title="Create Room" onPress={handleCreateRoom} />
+            {/* Create Room 버튼은 roomId가 있을 때만 숨겨짐 */}
+            {!roomId && (
+                <Button title="Create Room" onPress={handleCreateRoom} />
+            )}
             {roomId && userId ? (
-                <Button title="Join Room" onPress={handleJoinRoom} />
+                <>
+                    <Button title="Join Room" onPress={handleJoinRoom} />
+                    <Button title="Leave Room" onPress={handleLeaveRoom} />
+                </>
             ) : (
                 <Text style={styles.warningText}>Room ID and User ID are required to join a room.</Text>
             )}
             <Text>{serverResponse}</Text>
             <View style={styles.videoContainer}>
-                {remoteStream && (
+                {remoteStream ? (
                     <RTCView streamURL={remoteStream.toURL()} style={styles.remoteVideo} />
+                ) : (
+                    <Text>Waiting for remote stream...</Text>
                 )}
                 {localStream && (
                     <RTCView streamURL={localStream.toURL()} style={styles.localVideo} />
@@ -348,20 +322,22 @@ const CameraScreen = ({ route }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         alignItems: 'center',
+        padding: 20,
     },
     videoContainer: {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'space-around',
         width: '100%',
-        height: '80%',
+        height: '50%',
     },
     localVideo: {
         width: '90%',
         height: '40%',
         backgroundColor: 'black',
+        marginBottom: 20,
     },
     remoteVideo: {
         width: '90%',
