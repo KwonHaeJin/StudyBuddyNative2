@@ -9,7 +9,7 @@ const deviceWidth = Dimensions.get("window").width;
 
 const Login = () => {
   const navigation = useNavigation();
-  const url = "http://172.30.1.21:3000"; // React 웹 앱 URL
+  const url = "http://172.16.1.95:3000"; // React 웹 앱 URL
   const [token, setToken] = useState("");
 
   useEffect(() => {
