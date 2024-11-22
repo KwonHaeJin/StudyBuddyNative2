@@ -196,7 +196,7 @@ const CameraScreen = ({ route }) => {
 
             if (offer && offer.sdp) {
                 // setLocalDescription 호출
-               //await pc.setLocalDescription(offer); // 여기서 오류가 잇는듯...
+               await pc.setLocalDescription(offer); // 여기서 오류가 잇는듯...
 
 
                 console.log("-----------------------------\n");
