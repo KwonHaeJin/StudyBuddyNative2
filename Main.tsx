@@ -19,7 +19,7 @@ type NavigationProp = StackNavigationProp<RootStackParamList, 'CameraScreen'>;
 
 const Tab = createBottomTabNavigator();
 
-const BaseURL = 'http://172.16.1.95:3000';
+const BaseURL = 'http://172.30.1.61:3000';
 
 
 function WebViewWithToken({ url }: { url: string }) {
