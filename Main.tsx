@@ -4,13 +4,28 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import WebView from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CameraScreen from './CameraScreen';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+
+type RootStackParamList = {
+  CameraScreen: {
+    sendingRequestUserId: string;
+    receivedRequestUserId: string;
+  };
+};
+
+type NavigationProp = StackNavigationProp<RootStackParamList, 'CameraScreen'>;
+
 
 const Tab = createBottomTabNavigator();
+
 const BaseURL = 'http://172.16.1.95:3000';
+
 
 function WebViewWithToken({ url }: { url: string }) {
   const [token, setToken] = useState('');
-
+  const navigation = useNavigation<NavigationProp>();
+  
   useEffect(() => {
     const fetchToken = async () => {
       const storedToken = await AsyncStorage.getItem('token');
@@ -37,6 +52,27 @@ function WebViewWithToken({ url }: { url: string }) {
     );
   }
 
+
+  const handleStudyRequest = (data: string) => {
+    try {
+      const message = JSON.parse(data);
+
+      if (message.action === 'studyRequest') {
+        const { sendingRequestUserId, receivedRequestUserId } = message;
+
+        console.log(`Study request received from user: ${sendingRequestUserId}`);
+        
+        // Navigate to CameraScreen and pass the necessary data
+        navigation.navigate('CameraScreen', {
+          sendingRequestUserId,
+          receivedRequestUserId,
+        });
+      }
+    } catch (error) {
+      console.error('Error handling study request:', error);
+    }
+  };
+
   return (
     <WebView
       style={styles.webview}
@@ -44,6 +80,7 @@ function WebViewWithToken({ url }: { url: string }) {
       injectedJavaScript={injectedJS}
       onMessage={(event) => {
         console.log('Message from Web:', event.nativeEvent.data);
+        handleStudyRequest(event.nativeEvent.data);
       }}
     />
   );
@@ -122,6 +159,7 @@ const styles = StyleSheet.create({
   },
   screenContainer: {
     flex: 1,
+
   },
   webview: {
     flex: 1,
