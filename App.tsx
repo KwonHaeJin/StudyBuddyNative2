@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import Login from './Login'; // 로그인 페이지
 import Main from './Main';   // 메인 페이지
+import CameraPage from './Camera';
 
 const Stack = createNativeStackNavigator();
 
@@ -52,6 +53,7 @@ export default function App() {
                     component={Main}
                     options={{ headerShown: false }}
                 />
+                 <Stack.Screen name="Camera" component={CameraPage} /> 
             </Stack.Navigator>
         </NavigationContainer>
     );
