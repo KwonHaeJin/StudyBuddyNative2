@@ -53,7 +53,7 @@ function WebViewWithToken({ url }: { url: string }) {
   }
 
 
-  const handleStudyRequest = (data: string) => {
+  const handleRequest = (data: string) => {
     try {
       const message = JSON.parse(data);
 
@@ -68,6 +68,9 @@ function WebViewWithToken({ url }: { url: string }) {
           receivedRequestUserId,
         });
       }
+      if (message.action === 'startRecording') {
+        navigation.navigate('Camera');
+      }
     } catch (error) {
       console.error('Error handling study request:', error);
     }
@@ -80,7 +83,7 @@ function WebViewWithToken({ url }: { url: string }) {
       injectedJavaScript={injectedJS}
       onMessage={(event) => {
         console.log('Message from Web:', event.nativeEvent.data);
-        handleStudyRequest(event.nativeEvent.data);
+        handleRequest(event.nativeEvent.data);
       }}
     />
   );

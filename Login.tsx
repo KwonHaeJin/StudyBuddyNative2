@@ -19,7 +19,7 @@ const Login = () => {
       const storedToken = await AsyncStorage.getItem("token");
       console.log("Stored token:", storedToken);
       if (storedToken) {
-        setToken(storedToken);
+        setToken(storedToken); 
       }
     };
     fetchToken();
