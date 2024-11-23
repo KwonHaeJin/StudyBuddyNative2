@@ -118,19 +118,24 @@ const Main = () => {
       <Tab.Navigator screenOptions={({route}:{route:any})=>({
         tabBarIcon:({color}:{color:string})=>{
           let iconSource;
+          let iconSize;
 
           if(route.name == 'HomeScreen'){
             iconSource = require('./assets/image/homeIcon.png');
+            iconSize = { width: 25, height: 25 }; 
           } else if(route.name == 'ListScreen'){
-            iconSource = require('./assets/image/todooIcon.png');
+            iconSource = require('./assets/image/todoIcon.png');
+            iconSize = { width: 20, height: 20 }; 
           } else if(route.name == 'CameraScreen'){
             iconSource = require('./assets/image/cameraIcon.png');
+            iconSize = { width: 25, height: 25 }; 
           } else if(route.name == 'MyfeedScreen'){
             iconSource = require('./assets/image/feedIcon.png');
+            iconSize = { width: 25, height: 25 }; 
           } 
           return(
             <Image source={iconSource}
-            style={{width:24, height:24,tintColor:color,}}
+            style={{width:iconSize?.width, height:iconSize?.height,tintColor:color,}}
             resizeMode='contain'/>
           );
         },
