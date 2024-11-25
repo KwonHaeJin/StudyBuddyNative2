@@ -1,140 +1,83 @@
-import { useNavigation } from "@react-navigation/native";
-import React, { useState } from "react";
-import { StyleSheet, Dimensions, View, TextInput, TouchableOpacity } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import axios from "axios";
-import CustomText from "./CustomText";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, Dimensions } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import WebView from "react-native-webview";
+import { useNavigation } from "@react-navigation/native";
 
-const deviceHeight = (Dimensions.get('window').height);
-const deviceWidth = (Dimensions.get('window').width);
+const deviceHeight = Dimensions.get("window").height;
+const deviceWidth = Dimensions.get("window").width;
 
 const Login = () => {
   const navigation = useNavigation();
-  const [id, setId] = useState('');
-  const [pw, setPw] = useState('');
 
+  const url = "http://172.30.1.64:3000"; // React 웹 앱 URL
 
-  function Login() {
-    console.log("ID:", id, "Password:", pw);
-    axios.post(
-      `${BaseURL}/login`,
-      { "userId": id, "password": pw },
-      {
-        'headers': {
-          'Content-Type': 'application/json'
-        }
+  const [token, setToken] = useState("");
+
+  useEffect(() => {
+    const fetchToken = async () => {
+      const storedToken = await AsyncStorage.getItem("token");
+      console.log("Stored token:", storedToken);
+      if (storedToken) {
+        setToken(storedToken); 
       }
-    ).then(async (response) => {
-      if (response.status == 200) {
-        try {
-          await AsyncStorage.setItem("id", id);
-          await AsyncStorage.setItem("token", response.data.token);
-          console.log(await AsyncStorage.getItem("token"));
-          navigation.navigate("Main" as never);
-          console.log('로그인 성공');
-        } catch (error) { console.log("AsyncStorage error:", error); }
+    };
+    fetchToken();
+  }, []);
+
+  const injectedJS = `
+  (function() {
+    const token = window.localStorage.getItem('token');
+    const message = JSON.stringify({ token });
+    window.ReactNativeWebView.postMessage(message);
+  })();
+  true;
+`;
+
+  const handleWebViewMessage = async (event: any) => {
+    try {
+      const message = event.nativeEvent.data;
+      console.log("웹에서 받은 메시지:", message);
+
+      // 메시지가 JSON 형식인지 확인
+      const parsedMessage = JSON.parse(message);
+
+      if (parsedMessage.token && parsedMessage.token.trim() !== "") {
+        // 토큰을 AsyncStorage에 저장
+        await AsyncStorage.setItem("token", parsedMessage.token);
+        console.log("토큰 저장 성공:", parsedMessage.token);
+        // 여기서 메인으로 넘어가야함 
+        navigation.replace("Main");
+      } else {
       }
-
-    }).catch((error) => {
-      console.log(error.response);
-
-    });
-  }
-
+    } catch (error) {
+      console.error("메시지 처리 중 오류:", error); 
+    }
+  };
 
   return (
-    <SafeAreaView style={styles.main}>
-      <CustomText style={{ fontSize: 60, fontStyle: "italic", color: "#B3B3B3", marginRight: deviceWidth * 0.3 }}>study</CustomText>
-      <View style={{ display: "flex", flexDirection: "row" }}>
-        <View style={styles.dot1}></View><View style={styles.dot2}></View>
-      </View>
-      <CustomText style={{ fontSize: 72, fontStyle: "italic", color: "#FF7A00", marginTop: -15 }}>BUDDY</CustomText>
-      <View style={{ display: "flex", flexDirection: "row", justifyContent: "center" }}>
-        <CustomText style={{ fontSize: 22, marginRight: deviceWidth * 0.1 }}>아이디</CustomText>
-        <TextInput value={id} onChangeText={(text) => { setId(text); console.log("ID:", text); }} style={styles.textInput}></TextInput>
-      </View>
-      <View style={{ display: "flex", flexDirection: "row", justifyContent: "center" }}>
-        <CustomText style={{ fontSize: 22, marginRight: deviceWidth * 0.05 }}>비밀번호</CustomText>
-        <TextInput value={pw} onChangeText={(text) => { setPw(text); console.log("PW:", text); }} style={styles.textInput}></TextInput>
-      </View>
-      <TouchableOpacity style={styles.loginButton} onPress={() => { Login(); }}>
-        <CustomText style={{ fontSize: 15, color: "black" }}>login</CustomText>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.signupButton} onPress={() => { }}>
-        <CustomText style={{ fontSize: 15, color: "white" }}>sign up</CustomText>
-      </TouchableOpacity>
-
-
-
-    </SafeAreaView>
+    <View style={styles.container}>
+      <WebView
+        style={styles.webview}
+        source={{ uri: url }}
+        injectedJavaScript={injectedJS}
+        onMessage={handleWebViewMessage} // 메시지 핸들러 연결
+      />
+    </View>
   );
 };
 
 export default Login;
-export const BaseURL = "http://43.202.203.36:3000/api";
 
 const styles = StyleSheet.create({
-  main: {
-    display: 'flex',
-    flexDirection: "column",
-    alignItems: "center",
+  container: {
+    flex: 1,
     justifyContent: "center",
-    backgroundColor: "#FAFAFA",
-    paddingLeft: 2,
-    paddingRight: 2,
+    alignItems: "center",
+  },
+  webview: {
+    flex: 1,
     width: deviceWidth,
-    minHeight: deviceHeight,
+    height: deviceHeight,
   },
-  dot1: {
-    height: 7,
-    width: 7,
-    borderRadius: "50%",
-    backgroundColor: "#2EC316",
-    marginLeft: deviceWidth * 0.13,
-    marginTop: 0,
-    marginBottom: 0
-
-  },
-  dot2: {
-    height: 7,
-    width: 7,
-    borderRadius: "50%",
-    backgroundColor: "#2EC316",
-    marginLeft: deviceWidth * 0.09,
-    marginTop: 0,
-    marginBottom: 0
-  },
-  textInput: {
-    width: deviceWidth * 0.55,
-    padding: 10,
-    marginBottom: 15,
-    borderRadius: deviceHeight * 0.1,
-    height: deviceHeight * 0.05,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    backgroundColor: "#FFFFFF"
-  },
-  loginButton: {
-    width: deviceWidth * 0.75,
-    height: deviceHeight * 0.035,
-    borderColor: "#FF7A00",
-    borderWidth: 1,
-    backgroundColor: "#FFFFFF",
-    borderRadius: deviceHeight * 0.1,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  signupButton: {
-    width: deviceWidth * 0.75,
-    height: deviceHeight * 0.035,
-    borderColor: "#FF7A00",
-    borderWidth: 1,
-    backgroundColor: "#FF7A00",
-    borderRadius: deviceHeight * 0.1,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center"
-  }
 });
