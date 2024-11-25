@@ -53,12 +53,14 @@ const styles = StyleSheet.create({
   image1: {
     width: 100, // 원하는 너비
     height:50,
-    marginRight:150
+    marginRight:140
   },
   image2: {
     width: 200, // 원하는 너비
     height:45,
-    marginBottom:80
+    marginBottom:80,
+    marginLeft:10
+
   },
   button:{
     width:300,
