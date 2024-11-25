@@ -10,7 +10,7 @@ const deviceWidth = Dimensions.get("window").width;
 const Login = () => {
   const navigation = useNavigation();
 
-  const url = "http://172.30.1.61:3000"; // React 웹 앱 URL
+  const url = "http://172.30.1.64:3000"; // React 웹 앱 URL
 
   const [token, setToken] = useState("");
 
@@ -26,12 +26,13 @@ const Login = () => {
   }, []);
 
   const injectedJS = `
-    (function() {
-      window.localStorage.setItem('token', '${token}');
-      window.ReactNativeWebView.postMessage('토큰이 설정되었습니다: ' + window.localStorage.getItem('token'));
-    })();
-    true;
-  `;
+  (function() {
+    const token = window.localStorage.getItem('token');
+    const message = JSON.stringify({ token });
+    window.ReactNativeWebView.postMessage(message);
+  })();
+  true;
+`;
 
   const handleWebViewMessage = async (event: any) => {
     try {
@@ -41,18 +42,16 @@ const Login = () => {
       // 메시지가 JSON 형식인지 확인
       const parsedMessage = JSON.parse(message);
 
-      if (parsedMessage.token) {
+      if (parsedMessage.token && parsedMessage.token.trim() !== "") {
         // 토큰을 AsyncStorage에 저장
         await AsyncStorage.setItem("token", parsedMessage.token);
         console.log("토큰 저장 성공:", parsedMessage.token);
         // 여기서 메인으로 넘어가야함 
         navigation.replace("Main");
-
       } else {
-        console.error("토큰 정보가 포함되지 않았습니다.");
       }
     } catch (error) {
-      console.error("메시지 처리 중 오류:", error);
+      console.error("메시지 처리 중 오류:", error); 
     }
   };
 

@@ -1,7 +1,11 @@
 import React, { useEffect } from 'react';
-import { View, Text, Button, Linking, Alert } from 'react-native';
+import { View, Text, Button, Linking, Alert, Image, StyleSheet, Pressable } from 'react-native';
 
 const App = () => {
+
+  let titleS = require('./assets/image/title_study.png');
+  let titleB = require('./assets/image/title_buddy.png');
+
   const handleDeepLink = (event) => {
     Alert.alert('딥 링크 URL', event.url);  // 딥 링크 URL 처리
   };
@@ -29,14 +33,45 @@ const App = () => {
   }, []);
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>딥 링크 테스트 앱</Text>
-      <Button
-        title="웹 페이지로 이동"
+    <View style={styles.container}>
+      <Image source={titleS} style={styles.image1} resizeMode='contain'/>
+      <Image source={titleB}  style={styles.image2} resizeMode='contain'/>
+
+      <Pressable style={styles.button}
         onPress={() => Linking.openURL('https://15.164.74.145:5001/')} // 웹 페이지로 이동
-      />
+      > <Text style={styles.buttonText}>Go To Study</Text></Pressable>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  image1: {
+    width: 100, // 원하는 너비
+    height:50,
+    marginRight:150
+  },
+  image2: {
+    width: 200, // 원하는 너비
+    height:45,
+    marginBottom:80
+  },
+  button:{
+    width:300,
+    height:30,
+    backgroundColor:"#FF9500",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 20,
+  },
+  buttonText: {
+    color: "#FFFFFF",
+    fontSize: 18,
+  }
+});
 
 export default App;

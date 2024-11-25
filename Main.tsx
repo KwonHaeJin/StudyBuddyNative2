@@ -19,7 +19,7 @@ type NavigationProp = StackNavigationProp<RootStackParamList, 'CameraScreen'>;
 
 const Tab = createBottomTabNavigator();
 
-const BaseURL = 'http://172.30.1.61:3000';
+const BaseURL = 'http://172.30.1.64:3000';
 
 
 function WebViewWithToken({ url }: { url: string }) {
@@ -72,7 +72,7 @@ function WebViewWithToken({ url }: { url: string }) {
         navigation.navigate('Camera');
       }
     } catch (error) {
-      console.error('Error handling study request:', error);
+      //console.error('Error handling study request:', error);
     }
   };
 
@@ -146,7 +146,6 @@ const Main = () => {
         tabBarStyle: {
           height: 60, 
           paddingTop:10
-          
         },
       })}>
         <Tab.Screen name="HomeScreen" component={Home}/>
@@ -167,7 +166,6 @@ const styles = StyleSheet.create({
   },
   screenContainer: {
     flex: 1,
-
   },
   webview: {
     flex: 1,
